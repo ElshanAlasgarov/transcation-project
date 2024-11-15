@@ -1,17 +1,18 @@
 const createFrom = document.querySelector('.create-form');
 
-createFrom.addEventListener('submit', () => {
+createFrom.addEventListener('submit', async (e) => {
 
+    e.preventDefault();
     const amount = document.querySelector('.amount-input').value;
     const from = document.querySelector('.from-input').value;
     const to = document.querySelector('.to-input').value;
 
-    createData({amount, from, to });
+    await createData({from, to, amount});
 })
 
 async function createData(data){
     try{
-        fetch('https://acb-api.algoritmika.org/api/transaction',{
+        await fetch('https://acb-api.algoritmika.org/api/transaction',{
             method: 'POST',
             headers: {
                 'Content-Type':'application/json'

@@ -3,7 +3,6 @@ const fetchForm = document.querySelector('.fetch-form');
 const dont_show = document.querySelector('.dont-show');
 const create_result = document.querySelector('.create-result');
 const fetch_result = document.querySelector('.fetch-result');
-const delete_result = document.querySelector('.delete-result');
 
 createForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -167,17 +166,11 @@ function deleteData(id) {
     })
         .then(response => {
             if (!response.ok) {
-                delete_result.textContent = 'Deletion failed!';
-                delete_result.style.color = 'red';
                 throw new Error('Deletion failed!');
             }
-            delete_result.textContent = `ID: ${id} deleted!`;
-            delete_result.style.color = 'green';
         })
         .catch(err => {
             console.error(err);
-            delete_result.textContent = 'Deletion failed!';
-            delete_result.style.color = 'red';
         });
 }
 

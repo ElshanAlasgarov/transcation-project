@@ -121,5 +121,8 @@ button:disabled {
     font-weight: 600;
 }
 
+.dont-show{
+    display: none;
+}
 
 

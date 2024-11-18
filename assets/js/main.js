@@ -1,31 +1,37 @@
 const createForm = document.querySelector('.create-form');
 const fetchForm = document.querySelector('.fetch-form');
-const updateForm = document.querySelector('.update-form')
-const deleteForm = document.querySelector('.delete-form')
+const dont_show = document.querySelector('.dont-show');
+const create_result = document.querySelector('.create-result');
+const fetch_result = document.querySelector('.fetch-result');
+const delete_result = document.querySelector('.delete-result');
 
 createForm.addEventListener('submit', async (e) => {
-
     e.preventDefault();
     const from = document.querySelector('.from-input').value;
     const to = document.querySelector('.to-input').value;
     const amount = document.querySelector('.amount-input').value;
 
-    await createData({from, to, amount});
-})
+    if (from === '' || to === '' || amount <= 0) {
+        create_result.style.color = 'red';
+        create_result.textContent = 'Please enter all fields';
+    } else {
+        await createData({ from, to, amount });
+    }
+});
 
-async function createData(data){
-    try{
-        await fetch('https://acb-api.algoritmika.org/api/transaction',{
+async function createData(data) {
+    try {
+        await fetch('https://acb-api.algoritmika.org/api/transaction', {
             method: 'POST',
             headers: {
-                'Content-Type':'application/json'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(data)
-        })
-        document.querySelector('.create-result').textContent = 'Data added.'
-    }
-    catch (err){
-        console.log(err)
+        });
+        create_result.textContent = 'Data added.';
+        create_result.style.color = 'green';
+    } catch (err) {
+        console.log(err);
     }
 }
 
@@ -33,8 +39,18 @@ fetchForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const from = document.querySelector('.fetch-from-input').value;
     const to = document.querySelector('.fetch-to-input').value;
-    fetchDataByFromOrTo(from,to);
-})
+
+    fetchDataByFromOrTo(from, to);
+
+    fetch_result.style.display = 'block';
+    dont_show.style.display = 'block';
+
+    dont_show.addEventListener('click', (e) => {
+        e.preventDefault();
+        dont_show.style.display = 'none';
+        fetch_result.style.display = 'none';
+    });
+});
 
 function fetchDataByFromOrTo(fromValue, toValue) {
     let url = 'https://acb-api.algoritmika.org/api/transaction';
@@ -47,87 +63,101 @@ function fetchDataByFromOrTo(fromValue, toValue) {
 
     fetch(url)
         .then(response => {
-            if (!response.ok) { 
-                document.querySelector('.fetch-result').textContent = 'Data not found!';
+            if (!response.ok) {
+                fetch_result.textContent = 'Data not found!';
+                fetch_result.style.color = 'red';
                 throw new Error('Data not found!');
             }
             return response.json();
         })
         .then(data => {
-            if (!data || data.length === 0) { 
-                document.querySelector('.fetch-result').textContent = 'Data not found!';
+            if (!data || data.length === 0) {
+                fetch_result.textContent = 'Data not found!';
+                fetch_result.style.color = 'red';
                 return;
             }
 
             const resultHTML = data.map(item => {
                 return `
-                    <div class="transfer-card">
+                    <div class="transfer-card" data-id="${item.id}">
                         <h3>Transaction ID: ${item.id}</h3>
                         <p><span>Amount:</span> <span class="amount">${item.amount}</span></p>
                         <p><span>From:</span> ${item.from}</p>
                         <p><span>To:</span> ${item.to}</p>
+                        <input type="text" class="update-amount-input" placeholder="New amount" value="${item.amount}">
+                        <input type="text" class="update-from-input" placeholder="New from" value="${item.from}">
+                        <input type="text" class="update-to-input" placeholder="New to" value="${item.to}">
+                        <button class="update-button" data-id="${item.id}">Update</button>
+                        <button class="delete-button" data-id="${item.id}">Delete</button>
                     </div>
                 `;
             }).join('');
-            document.querySelector('.fetch-result').innerHTML = resultHTML;
+            fetch_result.innerHTML = resultHTML;
         })
         .catch(err => {
-            document.querySelector('.fetch-result').textContent = 'Data not found!';
+            fetch_result.textContent = 'Data not found!';
+            fetch_result.style.color = 'red';
             console.error(err);
         });
 }
 
-updateForm.addEventListener('submit', (e) => {
+document.querySelector('.fetch-result').addEventListener('click', (e) => {
+    if (e.target.classList.contains('update-button')) {
+        const card = e.target.closest('.transfer-card');
+        const id = card.dataset.id;
+        const updatedAmount = card.querySelector('.update-amount-input').value;
+        const updatedFrom = card.querySelector('.update-from-input').value;
+        const updatedTo = card.querySelector('.update-to-input').value;
 
-    e.preventDefault();
+        const updatedData = {
+            from: updatedFrom,
+            to: updatedTo,
+            amount: updatedAmount
+        };
 
-    const update_id_input = document.querySelector('.update-id-input').value;
-    const update_amount_input = document.querySelector('.update-amount-input').value
-    const update_from_input = document.querySelector('.update-from-input').value
-    const update_to_input = document.querySelector('.update-to-input').value
+        updateData(id, updatedData);
+    }
 
-    const updatedData = {
-        from: update_from_input,
-        to: update_to_input,
-        amount: update_amount_input
-    };
 
-    updateData(update_id_input,updatedData)
-})
+    if (e.target.classList.contains('delete-button')) {
+        const id = e.target.dataset.id;
+        deleteData(id);
+
+        const card = e.target.closest('.transfer-card');
+        if (card) {
+            card.remove();
+        }
+    }
+});
 
 function updateData(id, updatedData) {
     const url = `https://acb-api.algoritmika.org/api/transaction/${id}`;
 
     fetch(url, {
-        method: 'PUT', 
+        method: 'PUT',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(updatedData) 
+        body: JSON.stringify(updatedData)
     })
-    .then(response => {
-        if (!response.ok) {
-            document.querySelector('.update-result').textContent = 'Update failed!';
-            throw new Error('Update failed!');
-        }
-        return response.json(); 
-    })
-    .then(data => {
-        document.querySelector('.update-result').textContent = `Update successfuly: ID: ${data.id}, Amount: ${data.amount}, From: ${data.from}, To: ${data.to}`;
-    })
-    .catch(err => {
-        console.log(err)
-        document.querySelector('.update-result').textContent = 'Update failed!';
-    });
+        .then(response => {
+            if (!response.ok) {
+                fetch_result.textContent = 'Update failed!';
+                fetch_result.style.color = 'red';
+                throw new Error('Update failed!');
+            }
+            return response.json();
+        })
+        .then(data => {
+            fetch_result.textContent = `Updated successfully: ID: ${data.id}, Amount: ${data.amount}, From: ${data.from}, To: ${data.to}`;
+            fetch_result.style.color = 'green';
+        })
+        .catch(err => {
+            console.log(err);
+            fetch_result.textContent = 'Update failed!';
+            fetch_result.style.color = 'red';
+        });
 }
-
-deleteForm.addEventListener('submit',(e) => {
-
-    e.preventDefault()
-    const delete_id_input = document.querySelector('.delete-id-input').value
-    
-    deleteData(delete_id_input)
-})
 
 function deleteData(id) {
     const url = `https://acb-api.algoritmika.org/api/transaction/${id}`;
@@ -135,16 +165,19 @@ function deleteData(id) {
     fetch(url, {
         method: 'DELETE'
     })
-    .then(response => {
-        if (!response.ok) {
-            document.querySelector('.delete-result').textContent = 'Deletion failed!';
-            throw new Error('Deletion failed!');
-        }
-        document.querySelector('.delete-result').textContent = `ID: ${id} deleted!`;
-    })
-    .catch(err => {
-        console.error(err);
-        document.querySelector('.delete-result').textContent = 'Deletion failed!';
-    });
+        .then(response => {
+            if (!response.ok) {
+                delete_result.textContent = 'Deletion failed!';
+                delete_result.style.color = 'red';
+                throw new Error('Deletion failed!');
+            }
+            delete_result.textContent = `ID: ${id} deleted!`;
+            delete_result.style.color = 'green';
+        })
+        .catch(err => {
+            console.error(err);
+            delete_result.textContent = 'Deletion failed!';
+            delete_result.style.color = 'red';
+        });
 }
 
